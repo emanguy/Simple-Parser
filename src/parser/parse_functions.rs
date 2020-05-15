@@ -55,22 +55,7 @@ pub fn evaluate_expression(expression: &Vec<Token>) -> Result<i32, EvaluationErr
                     if let Some(top_symbol) = symbol_stack.last() {
                         // When the symbol we're currently encountering has a greater or equal precedence, evaluate it
                         if top_symbol.precedence >= symbol_value.precedence {
-                            let second_value = value_stack.pop().ok_or_else(|| SymbolValueMismatch)?;
-                            let first_value = value_stack.pop().ok_or_else(|| SymbolValueMismatch)?;
-                            let the_top_symbol = symbol_stack.pop().unwrap();
-
-                            match *the_top_symbol {
-                                ADD => value_stack.push(first_value + second_value),
-                                SUBTRACT => value_stack.push(first_value - second_value),
-                                MULTIPLY => value_stack.push(first_value * second_value),
-                                DIVIDE => {
-                                    if second_value == 0 {
-                                        return Err(DivideByZero);
-                                    }
-                                    value_stack.push(first_value / second_value);
-                                },
-                                _ => return Err(UnknownSymbol(the_top_symbol.clone())),
-                            }
+                            execute_symbol(&mut value_stack, &mut symbol_stack)?;
                         } else {
                             // Otherwise just push the symbol and move on
                             symbol_stack.push(symbol_value);
@@ -86,6 +71,11 @@ pub fn evaluate_expression(expression: &Vec<Token>) -> Result<i32, EvaluationErr
         }
     }
 
+    // Execute any remaining symbols
+    while !symbol_stack.is_empty() {
+        execute_symbol(&mut value_stack, &mut symbol_stack)?;
+    }
+
     let final_value = value_stack.pop();
 
     if !value_stack.is_empty() || !symbol_stack.is_empty() {
@@ -93,5 +83,26 @@ pub fn evaluate_expression(expression: &Vec<Token>) -> Result<i32, EvaluationErr
     } else {
         final_value.ok_or(SymbolValueMismatch)
     }
+}
+
+fn execute_symbol(value_stack: &mut Vec<i32>, symbol_stack: &mut Vec<&SymbolData>) -> Result<(), EvaluationError> {
+    let second_value = value_stack.pop().ok_or_else(|| SymbolValueMismatch)?;
+    let first_value = value_stack.pop().ok_or_else(|| SymbolValueMismatch)?;
+    let the_top_symbol = symbol_stack.pop().unwrap();
+
+    match *the_top_symbol {
+        ADD => value_stack.push(first_value + second_value),
+        SUBTRACT => value_stack.push(first_value - second_value),
+        MULTIPLY => value_stack.push(first_value * second_value),
+        DIVIDE => {
+            if second_value == 0 {
+                return Err(DivideByZero);
+            }
+            value_stack.push(first_value / second_value);
+        },
+        _ => return Err(UnknownSymbol(the_top_symbol.clone())),
+    }
+
+    Ok(())
 }
 

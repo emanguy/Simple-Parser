@@ -4,8 +4,13 @@ use parser::parse_functions::{tokenize_string, evaluate_expression};
 mod parser;
 
 fn main() {
-    let expression = String::from("1+2*3-4");
-    let tokens_result = tokenize_string(&expression);
+    let args: Vec<String> = std::env::args().collect();
+    if args.len() != 2 {
+        eprintln!("simple_parser takes exactly one argument.");
+        return;
+    }
+    let expression = args.get(1).unwrap();
+    let tokens_result = tokenize_string(expression);
     let tokens = match tokens_result {
         Ok(token_vec) => token_vec,
         Err(token_err) => {
